@@ -529,8 +529,6 @@ async def cmd_faq(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         "━━━━━━━━━━━━━━━━\n\n"
 
         "📞 <b>Контакты</b>\n"
-        "Telegram: @one_shop\n"
-        "Email: info@one.uz"
     )
     await update.message.reply_text(
         text, parse_mode="HTML", reply_markup=back_to_menu_keyboard()
