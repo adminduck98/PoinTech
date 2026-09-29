@@ -1,0 +1,55 @@
+{
+  "rewrites": [
+    {
+      "source": "/product/:slug",
+      "has": [
+        {
+          "type": "header",
+          "key": "user-agent",
+          "value": "(?i).*(TelegramBot|facebookexternalhit|facebookcatalog|Twitterbot|WhatsApp|Slackbot|Discordbot|LinkedInBot|vkShare|Googlebot|bingbot|Applebot|YandexBot|redditbot|Pinterest).*"
+        }
+      ],
+      "destination": "/api/product-preview?slug=:slug"
+    },
+    {
+      "source": "/((?!assets/|.*\\..*).*)",
+      "destination": "/index.html"
+    }
+  ],
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "Referrer-Policy",
+          "value": "strict-origin-when-cross-origin"
+        },
+        {
+          "key": "Strict-Transport-Security",
+          "value": "max-age=31536000; includeSubDomains"
+        },
+        {
+          "key": "Permissions-Policy",
+          "value": "camera=(), microphone=(), payment=()"
+        },
+        {
+          "key": "Content-Security-Policy",
+          "value": "default-src 'self'; script-src 'self' 'unsafe-inline' https://telegram.org; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https:; connect-src 'self' https://*.supabase.co https://api.telegram.org https://nominatim.openstreetmap.org; frame-ancestors https://web.telegram.org https://*.telegram.org; base-uri 'self'; form-action 'self'"
+        }
+      ]
+    },
+    {
+      "source": "/assets/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=31536000, immutable"
+        }
+      ]
+    }
+  ]
+}

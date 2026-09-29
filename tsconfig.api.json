@@ -1,0 +1,23 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    /* Vercel's edge runtime is Web-standard, not Node: fetch, Request,
+       Response, URL and AbortController come from the DOM lib. There is no
+       `process` global typed here on purpose — the handler reads env through a
+       narrowed cast, so a stray Node-only API is a compile error rather than a
+       runtime one. */
+    "lib": ["ES2022", "DOM"],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "isolatedModules": true,
+    "moduleDetection": "force",
+    "noEmit": true,
+    "skipLibCheck": true,
+
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true
+  },
+  "include": ["api"]
+}

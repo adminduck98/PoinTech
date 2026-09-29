@@ -1,0 +1,1048 @@
+<title>ONE — аудит кодовой базы</title>
+<style>
+  :root {
+    --ground:#F4F6F9; --surface:#FFFFFF; --surface-2:#EAEFF5;
+    --ink:#12171F; --ink-2:#4E5967; --ink-3:#7C8898;
+    --rule:#DCE3EC; --rule-strong:#C3CDDA;
+    --accent:#17709F;
+    --crit:#A8262A; --crit-bg:#F8E8E8; --crit-rule:#E5C2C3;
+    --imp:#8A5900;  --imp-bg:#F9F1E0;  --imp-rule:#E3D2AF;
+    --nice:#35674E; --nice-bg:#E7F0EA; --nice-rule:#C4D8CB;
+    --ok:#2E6B4C;
+    --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground:#0D1117; --surface:#151B23; --surface-2:#1D242E;
+      --ink:#E6EBF2; --ink-2:#9AA6B6; --ink-3:#6B7787;
+      --rule:#262E39; --rule-strong:#37414F;
+      --accent:#57B3DE;
+      --crit:#EE8C8C; --crit-bg:#2B1718; --crit-rule:#4A2728;
+      --imp:#DFAF64;  --imp-bg:#291F12;  --imp-rule:#453320;
+      --nice:#85C4A0; --nice-bg:#14231B; --nice-rule:#244032;
+      --ok:#7FC49F;
+    }
+  }
+  :root[data-theme="dark"] {
+    --ground:#0D1117; --surface:#151B23; --surface-2:#1D242E;
+    --ink:#E6EBF2; --ink-2:#9AA6B6; --ink-3:#6B7787;
+    --rule:#262E39; --rule-strong:#37414F;
+    --accent:#57B3DE;
+    --crit:#EE8C8C; --crit-bg:#2B1718; --crit-rule:#4A2728;
+    --imp:#DFAF64;  --imp-bg:#291F12;  --imp-rule:#453320;
+    --nice:#85C4A0; --nice-bg:#14231B; --nice-rule:#244032;
+    --ok:#7FC49F;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin:0; background:var(--ground); color:var(--ink);
+    font-family:var(--sans); font-size:16px; line-height:1.6;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap { max-width:880px; margin:0 auto; padding:40px 20px 96px; display:flex; flex-direction:column; gap:44px; }
+
+  .masthead { display:flex; flex-direction:column; gap:18px; }
+  .eyebrow { font-family:var(--mono); font-size:11px; letter-spacing:.16em; text-transform:uppercase; color:var(--accent); margin:0; }
+  h1 { font-family:var(--mono); font-size:clamp(28px,6vw,40px); font-weight:600; letter-spacing:-.02em; line-height:1.15; text-wrap:balance; margin:0; }
+  .lede { margin:0; max-width:62ch; color:var(--ink-2); font-size:16.5px; }
+  .lede b { color:var(--ink); }
+  .meta { display:flex; flex-wrap:wrap; gap:8px 28px; padding-top:16px; border-top:1px solid var(--rule); font-family:var(--mono); font-size:12.5px; color:var(--ink-3); }
+  .meta b { color:var(--ink-2); font-weight:500; }
+
+  .tally { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:1px; background:var(--rule); border:1px solid var(--rule); border-radius:3px; overflow:hidden; }
+  .tally div { background:var(--surface); padding:16px 18px; display:flex; flex-direction:column; gap:3px; }
+  .tally .n { font-family:var(--mono); font-size:30px; font-weight:600; line-height:1; font-variant-numeric:tabular-nums; }
+  .tally .k { font-family:var(--mono); font-size:11px; letter-spacing:.13em; text-transform:uppercase; color:var(--ink-3); }
+  .tally .done .n { color:var(--ok); }
+  .tally .imp .n  { color:var(--imp); }
+  .tally .nice .n { color:var(--nice); }
+  .tally .mob .n  { color:var(--accent); }
+
+  section { display:flex; flex-direction:column; }
+  .sec-head { display:flex; align-items:baseline; gap:14px; padding-bottom:12px; border-bottom:2px solid var(--rule-strong); }
+  .sec-head h2 { font-family:var(--mono); font-size:17px; font-weight:600; letter-spacing:.02em; margin:0; }
+  .sec-head .count { font-family:var(--mono); font-size:12px; color:var(--ink-3); font-variant-numeric:tabular-nums; }
+  .sec-head .verdict { margin-left:auto; font-size:13px; color:var(--ink-3); }
+  .sec-note { margin:16px 0 0; color:var(--ink-2); font-size:15px; max-width:70ch; }
+
+  .finds { display:flex; flex-direction:column; }
+  .find { display:grid; grid-template-columns:92px 1fr; gap:0 20px; padding:22px 0; border-bottom:1px solid var(--rule); align-items:start; }
+  .find:last-child { border-bottom:none; }
+  .find.done h3 { color:var(--ink-2); }
+
+  .tagcol { display:flex; flex-direction:column; gap:5px; align-items:flex-start; }
+  .tag { font-family:var(--mono); font-size:11.5px; font-weight:600; letter-spacing:.05em; padding:3px 7px; border-radius:2px; border:1px solid; display:inline-block; white-space:nowrap; }
+  .t-crit { color:var(--crit); background:var(--crit-bg); border-color:var(--crit-rule); }
+  .t-imp  { color:var(--imp);  background:var(--imp-bg);  border-color:var(--imp-rule); }
+  .t-nice { color:var(--nice); background:var(--nice-bg); border-color:var(--nice-rule); }
+  .t-mob  { color:var(--accent); background:var(--surface-2); border-color:var(--rule-strong); }
+  .t-done { color:var(--ok); background:var(--nice-bg); border-color:var(--nice-rule); }
+
+  .body { display:flex; flex-direction:column; gap:9px; min-width:0; }
+  .body h3 { margin:0; font-size:16.5px; font-weight:600; line-height:1.35; text-wrap:balance; }
+  .body p { margin:0; color:var(--ink-2); font-size:15px; }
+
+  .refs { display:flex; flex-wrap:wrap; gap:6px; }
+  .refs code, code.inline {
+    font-family:var(--mono); font-size:12px; background:var(--surface-2);
+    border:1px solid var(--rule); border-radius:2px; padding:2px 6px; color:var(--ink-2);
+  }
+  .refs code { white-space:nowrap; }
+  code.inline { font-size:13px; border:none; padding:1px 4px; }
+
+  .why, .fix {
+    font-size:14.5px; border-radius:3px; padding:10px 13px; color:var(--ink);
+  }
+  .why { background:var(--surface); border:1px solid var(--rule); }
+  .fix { background:var(--nice-bg); border:1px solid var(--nice-rule); }
+  .why b, .fix b {
+    font-family:var(--mono); font-size:10.5px; letter-spacing:.12em; text-transform:uppercase;
+    font-weight:600; display:block; margin-bottom:3px;
+  }
+  .why b { color:var(--ink-3); }
+  .fix b { color:var(--ok); }
+  .fix .left, .why .left {
+    display:block; margin-top:7px; padding-top:7px; border-top:1px solid var(--nice-rule);
+    color:var(--ink-2); font-size:13.5px;
+  }
+
+  .panel { background:var(--surface); border:1px solid var(--rule); border-radius:3px; padding:22px 24px; display:flex; flex-direction:column; gap:14px; }
+  .panel h2 { font-family:var(--mono); font-size:15px; font-weight:600; margin:0; }
+  .panel p { margin:0; font-size:15px; color:var(--ink-2); }
+  .panel p b { color:var(--ink); }
+  .checks { margin:0; padding:0; list-style:none; display:flex; flex-direction:column; gap:7px; }
+  .checks li { display:grid; grid-template-columns:20px 1fr; gap:10px; font-size:14.5px; color:var(--ink-2); }
+  .checks .m { font-family:var(--mono); font-weight:600; color:var(--ok); }
+  .checks .m.warn { color:var(--imp); }
+  .checks b { color:var(--ink); font-weight:600; }
+  .caveat { font-size:14px; color:var(--ink-2); border-top:1px solid var(--rule); padding-top:14px; margin:0; }
+
+  @media (max-width:560px) {
+    .find { grid-template-columns:1fr; gap:10px; }
+    .sec-head { flex-wrap:wrap; }
+    .sec-head .verdict { margin-left:0; width:100%; }
+  }
+</style>
+
+<div class="wrap">
+
+  <header class="masthead">
+    <p class="eyebrow">Аудит кодовой базы · Telegram Mini App</p>
+    <h1>ONE — магазин в Telegram</h1>
+    <p class="lede">
+      Разбор фронтенда, edge-функций, бота и деплой-конфигов. Каждая находка проверена в коде;
+      где было можно — подтверждена запуском. <b>Исправлена 31 находка из 37</b>: все критичные, 12 из 14 важных, 4 из 6 по адаптивности и 10 из 12 желательных;
+      что именно сделано — в каждой карточке.
+    </p>
+    <div class="meta">
+      <span><b>Объём:</b> ~17.5к строк TS/TSX · ~3.9к Deno · ~1.1к Python</span>
+      <span><b>База:</b> main @ f0e85da + незакоммиченные правки</span>
+      <span><b>Обновлено:</b> 13.08.2026</span>
+    </div>
+  </header>
+
+  <div class="tally">
+    <div class="done"><span class="n">31</span><span class="k">Исправлено</span></div>
+    <div class="imp"><span class="n">2</span><span class="k">Важно · осталось</span></div>
+    <div class="mob"><span class="n">2</span><span class="k">Адаптивность · осталось</span></div>
+    <div class="nice"><span class="n">2</span><span class="k">Желательно · осталось</span></div>
+  </div>
+
+  <div class="panel">
+    <h2>Что всплыло по ходу работы</h2>
+    <p>
+      Проверяя исправление IMP-1 в браузере, наткнулся на более частый путь к той же поломке,
+      которого в исходном списке не было. react-query при офлайне <b>не проваливает</b> запрос,
+      а <b>ставит его на паузу</b>: <code class="inline">status</code> остаётся
+      <code class="inline">'pending'</code>, <code class="inline">fetchStatus</code> становится
+      <code class="inline">'paused'</code>, а <code class="inline">isLoading</code> и
+      <code class="inline">isError</code> при этом оба <code class="inline">false</code> с пустым
+      <code class="inline">data</code>.
+    </p>
+    <p>
+      Экран, который смотрит только на эти два флага, проваливается в своё пустое состояние —
+      покупатель в лифте или метро видит «Нет товаров». Для мини-аппа в телефоне это вероятнее
+      обычной ошибки запроса. Наблюдал вживую: при недоступном API запрос товаров стоял в
+      <code class="inline">{ status: 'pending', fetchStatus: 'paused' }</code>, а каталог рисовал
+      пустоту. Обработка добавлена вместе с IMP-1 — теперь там «Нет подключения. Загрузка
+      продолжится автоматически».
+    </p>
+  </div>
+
+  <!-- ═══════════ КРИТИЧНО ═══════════ -->
+  <section>
+    <div class="sec-head">
+      <h2>Критично — исправлено</h2>
+      <span class="count">5 из 5</span>
+      <span class="verdict">Ломало функциональность у живых пользователей</span>
+    </div>
+
+    <div class="finds">
+
+      <div class="find done">
+        <span class="tagcol"><span class="tag t-crit">CRIT-1</span><span class="tag t-done">✓ готово</span></span>
+        <div class="body">
+          <h3>Каталог упирался в rate limit на первом же экране</h3>
+          <div class="refs">
+            <code>src/components/WishlistToggle.tsx:29</code>
+            <code>src/lib/supabase/users.ts</code>
+            <code>supabase/functions/client-api/index.ts</code>
+          </div>
+          <p>
+            Каждая карточка товара вызывала <code class="inline">useFavoritePrefs</code>, а тот тянул
+            <em>весь</em> список избранного ради одной строки. У каждого товара свой ключ
+            react-query, поэтому 20 карточек = 20 запросов к client-api при лимите 30/мин на IP.
+            Вторая страница уходила в 429 — и 429 на IP валил всё сразу: профиль, уведомления,
+            чат, оформление заказа.
+          </p>
+          <div class="fix">
+            <b>Исправлено</b>
+            <code class="inline">getPrefs(user, product)</code> → <code class="inline">getPrefsMap(user)</code>,
+            ключ запроса стал <code class="inline">['favorite_prefs', userId]</code> без productId.
+            Все <code class="inline">WishlistToggle</code> делят одну запись кэша и один запрос,
+            каждый сужает её через <code class="inline">select</code>. Оптимистичное обновление
+            переписано на карту; <code class="inline">useToggleFavorite</code> её инвалидирует.
+            <span class="left">Было 20 запросов на страницу каталога, стало 1.</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="find done">
+        <span class="tagcol"><span class="tag t-crit">CRIT-2</span><span class="tag t-done">✓ готово</span></span>
+        <div class="body">
+          <h3>Фильтр по размеру или цвету ломал пагинацию — товары дублировались</h3>
+          <div class="refs"><code>src/lib/supabase/products.ts</code><code>src/lib/supabase/hooks.ts</code></div>
+          <p>
+            <code class="inline">range()</code> применялся на сервере, фильтрация по размерам и
+            цветам — в браузере после выборки, а <code class="inline">getNextPageParam</code> считал
+            следующий offset по длине уже отфильтрованного массива. Страница из 20 строк, ужатая до
+            5, просила следующую с offset 5 — то есть перезапрашивала строки 5–19. Товары
+            повторялись в списке (и дублировались React-ключи), хвост каталога не открывался
+            никогда.
+          </p>
+          <div class="fix">
+            <b>Исправлено</b>
+            Фильтр по размерам ушёл на сервер: <code class="inline">sizes</code> — это
+            <code class="inline">text[]</code>, поэтому «любой из выбранных» выражается одним
+            <code class="inline">.overlaps()</code>. Пагинация считается в серверных строках:
+            <code class="inline">getAll</code> возвращает <code class="inline">nextOffset</code> и
+            <code class="inline">hasMore</code>, хук берёт их оттуда.
+            <span class="left">
+              Осталось: <code class="inline">colors</code> — это <code class="inline">jsonb[]</code>,
+              у PostgREST нет предиката «любой элемент массива имеет такой hex», так что этот один
+              фильтр по-прежнему работает в браузере. На пагинацию он больше не влияет, но счётчик
+              был бы завышен — поэтому при активном фильтре по цвету число из кнопки «Показать ещё»
+              убрано, а в шапке показывается фактически загруженное. Полностью на сервер это уедет
+              только через RPC.
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <div class="find done">
+        <span class="tagcol"><span class="tag t-crit">CRIT-3</span><span class="tag t-done">✓ готово</span></span>
+        <div class="body">
+          <h3>Статусы «В доставке», «Доставлен», «Оплачен» — белый текст на белом</h3>
+          <div class="refs"><code>src/lib/orderStatuses.ts</code><code>tailwind.config.js</code></div>
+          <p>
+            Эти статусы использовали <code class="inline">bg-brand-600</code> и
+            <code class="inline">bg-brand-700</code>, а палитры <code class="inline">brand</code> в
+            конфиге Tailwind нет вообще — в собранном CSS таких правил ноль. Оставался только
+            <code class="inline">text-white</code>. Там же были мертвы
+            <code class="inline">surface-300/400/500/600</code>. Затрагивало Orders, Profile,
+            AdminOrders и AdminDashboard.
+          </p>
+          <div class="fix">
+            <b>Исправлено</b>
+            Все классы заменены на реально объявленные; проверено по пересобранному CSS.
+            Первый вариант — <code class="inline">text-success</code> /
+            <code class="inline">text-warning</code> на цветном тинте — я замерил и отклонил:
+            в светлой теме выходило 2.86–2.95:1, а бейдж набран 12px bold, что по WCAG считается
+            мелким текстом и требует 4.5:1. Поэтому цвет несёт подложка и точка, а подпись
+            нейтральная: замерено в браузере 4.68–15.65:1, все 11 статусов проходят AA в обеих
+            темах.
+          </div>
+        </div>
+      </div>
+
+      <div class="find done">
+        <span class="tagcol"><span class="tag t-crit">CRIT-4</span><span class="tag t-done">✓ частично</span></span>
+        <div class="body">
+          <h3>Токен бота открытым текстом в <code class="inline">bot/bot.log</code> — 6742 раза</h3>
+          <div class="refs"><code>bot/main.py</code><code>bot/bot.log</code></div>
+          <p>
+            <code class="inline">basicConfig(level=INFO)</code> без подавления
+            <code class="inline">httpx</code>: python-telegram-bot ходит в API по URL вида
+            <code class="inline">api.telegram.org/bot&lt;TOKEN&gt;/sendMessage</code>, а httpx
+            логирует URL целиком. Файл 1.5&nbsp;МБ; наличие токена подтверждено грепом.
+          </p>
+          <div class="fix">
+            <b>Исправлено в коде</b>
+            <code class="inline">httpx</code> и <code class="inline">httpcore</code> приглушены до
+            WARNING сразу после <code class="inline">basicConfig</code>, с комментарием о причине.
+            <span class="left">
+              Два шага остаются за вами, и без них правка неполна: удалить
+              <code class="inline">bot/bot.log</code> и <code class="inline">bot/debug.log</code>,
+              и ротировать токен через BotFather. Он лежал на диске открытым — глушение логгера
+              защищает от повторения, но не отзывает утёкший токен.
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <div class="find done">
+        <span class="tagcol"><span class="tag t-crit">CRIT-5</span><span class="tag t-done">✓ готово</span></span>
+        <div class="body">
+          <h3>Поиск ломался на запятой</h3>
+          <div class="refs"><code>src/lib/supabase/products.ts</code></div>
+          <p>
+            Экранировались только <code class="inline">% _ ( )</code>, после чего строка
+            вставлялась в PostgREST-фильтр <code class="inline">or=(…)</code>, где запятая —
+            разделитель условий. Запрос «футболка, синяя» либо возвращал 400 и пустой каталог,
+            либо менял набор условий.
+          </p>
+          <div class="fix">
+            <b>Исправлено</b>
+            Экранирование стало двухслойным и в правильном порядке: сначала LIKE
+            (<code class="inline">%</code>, <code class="inline">_</code>,
+            <code class="inline">\</code>), затем кавычки PostgREST. Значение оборачивается в
+            двойные кавычки, что и делает <code class="inline">,</code> <code class="inline">.</code>
+            <code class="inline">(</code> <code class="inline">)</code> литеральными.
+            <span class="left">Прогнано на «футболка, синяя», «100% хлопок», кавычках и слэшах — фильтр корректен.</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ═══════════ ВАЖНО — ИСПРАВЛЕНО ═══════════ -->
+  <section>
+    <div class="sec-head">
+      <h2>Важно — исправлено</h2>
+      <span class="count">12 из 14</span>
+      <span class="verdict">Заметно для пользователя или мешало эксплуатации</span>
+    </div>
+
+    <div class="finds">
+
+      <div class="find done">
+        <span class="tagcol"><span class="tag t-imp">IMP-1</span><span class="tag t-done">✓ готово</span></span>
+        <div class="body">
+          <h3>Упавший запрос выглядел как «ничего не найдено»</h3>
+          <div class="refs"><code>src/components/QueryError.tsx</code><code>src/lib/queryState.ts</code><code>src/App.tsx</code></div>
+          <p>
+            Ни одна страница не читала <code class="inline">isError</code> — только
+            <code class="inline">isLoading</code> и <code class="inline">data</code> с дефолтом
+            <code class="inline">[]</code>. Сбой сети, отказ RLS и реально пустой каталог были
+            неотличимы, кнопки «повторить» не было.
+          </p>
+          <div class="fix">
+            <b>Исправлено</b>
+            Добавлен компонент <code class="inline">QueryError</code> (двуязычный, с кнопкой
+            повтора) и подключён в Catalog, Home, Orders, Favorites, ProductDetail и
+            NotificationCenter. В <code class="inline">QueryClient</code> настроен retry с
+            экспоненциальной задержкой, который не повторяет 4xx и отсутствие Telegram-сессии.
+            ProductDetail больше не показывает «Товар не найден» при сетевой ошибке.
+            <span class="left">
+              Плюс обработка офлайн-паузы react-query — см. панель «Что всплыло по ходу работы».
+              Проверено в браузере: каталог показывает «Нет подключения» вместо «Нет товаров».
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <div class="find done">
+        <span class="tagcol"><span class="tag t-imp">IMP-2</span><span class="tag t-done">✓ готово</span></span>
+        <div class="body">
+          <h3>Опрос чата 1.5&nbsp;с гарантированно выбивал лимит client-api</h3>
+          <div class="refs"><code>src/lib/supabase/hooks.ts</code></div>
+          <p>
+            Один открытый чат по заказу давал 40 запросов в минуту при лимите 30 — пользователь
+            получал 429 просто за то, что держал тред открытым.
+          </p>
+          <div class="fix">
+            <b>Исправлено</b>
+            Интервал чата 1.5&nbsp;с → 6&nbsp;с (10 запросов/мин, остаётся запас на остальной
+            экран), счётчик непрочитанных 3&nbsp;с → 60&nbsp;с.
+            <code class="inline">refetchIntervalInBackground</code> по умолчанию выключен, так что
+            свёрнутый мини-апп запросы не тратит.
+          </div>
+        </div>
+      </div>
+
+      <div class="find done">
+        <span class="tagcol"><span class="tag t-imp">IMP-4</span><span class="tag t-done">✓ готово</span></span>
+        <div class="body">
+          <h3>Кнопка «Нет в наличии» — белый текст на светло-сером</h3>
+          <div class="refs"><code>src/pages/ProductDetail.tsx</code></div>
+          <p>
+            <code class="inline">bg-surface-muted … text-text-inverse</code>: в светлой теме
+            фон #F0F0F0, текст белый, контраст ~1.1:1 — надпись просто исчезала на главном CTA
+            карточки товара.
+          </p>
+          <div class="fix">
+            <b>Исправлено</b>
+            <code class="inline">text-text-secondary</code> — 4.68:1 в светлой теме.
+          </div>
+        </div>
+      </div>
+
+      <div class="find done">
+        <span class="tagcol"><span class="tag t-imp">IMP-5</span><span class="tag t-done">✓ готово</span></span>
+        <div class="body">
+          <h3>В тёмной теме статусные фоны равнялись статусным цветам</h3>
+          <div class="refs"><code>src/index.css</code></div>
+          <p>
+            <code class="inline">--success-bg</code> и соседи были дословными копиями
+            <code class="inline">--success</code> и т.д. В светлой теме это бледные заливки,
+            в тёмной — сплошной цветной блок: красное сердце в
+            <code class="inline">WishlistToggle</code> растворялось в собственной кнопке (1.0:1).
+          </p>
+          <div class="fix">
+            <b>Исправлено</b>
+            Тинты заданы как 15% статусного цвета поверх приподнятой поверхности — та же связь,
+            что в светлой теме, но для тёмного фона. Замерено в браузере: 3.8–5.9:1 против прежних
+            1.0:1.
+            <span class="left">
+              Для мелкого текста этого мало (см. вывод в CRIT-3) — подписи на таких плашках стоит
+              оставлять нейтральными.
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <div class="find done">
+        <span class="tagcol"><span class="tag t-imp">IMP-6</span><span class="tag t-done">✓ готово</span></span>
+        <div class="body">
+          <h3>MapPicker: если геокодер не ответил, адрес было не выбрать вообще</h3>
+          <div class="refs"><code>src/components/MapPicker.tsx</code></div>
+          <p>
+            Кнопка подтверждения была заблокирована до ответа Nominatim, а у того таймаут 5&nbsp;с
+            и пустой <code class="inline">catch</code>. Сервис бесплатный, лимит ~1 запрос/с,
+            регулярно отдаёт 429 — покупатель ставил метку ровно там, где живёт, и не мог
+            продолжить. Тупик посреди оформления заказа.
+          </p>
+          <div class="fix">
+            <b>Исправлено</b>
+            Координаты есть всегда, и курьеру нужны именно они. Если обратное геокодирование не
+            вернулось, подтверждение отдаёт координаты в читаемом виде, а подпись честно говорит,
+            что адрес можно уточнить в заказе.
+          </div>
+        </div>
+      </div>
+
+      <div class="find done">
+        <span class="tagcol"><span class="tag t-imp">IMP-7</span><span class="tag t-done">✓ готово</span></span>
+        <div class="body">
+          <h3><code class="inline">admin-api</code> брал список колонок из клиентского <code class="inline">data</code></h3>
+          <div class="refs"><code>supabase/functions/admin-api/index.ts</code></div>
+          <p>
+            Для всех таблиц кроме <code class="inline">admin_accounts</code> клиент диктовал
+            select-выражение целиком, включая PostgREST-эмбеды по внешним ключам
+            (<code class="inline">*, orders(*)</code>) — то есть в обход матрицы прав.
+          </p>
+          <div class="fix">
+            <b>Исправлено</b>
+            Добавлена <code class="inline">sanitizeColumns()</code>: только голые идентификаторы,
+            без скобок, точек и операторов; <code class="inline">admin_accounts</code> по-прежнему
+            прибит к белому списку. Невалидный запрос получает 400.
+            <span class="left">
+              Ни один вызов в репозитории список колонок не передаёт, так что совместимость не
+              задета.
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <div class="find done">
+        <span class="tagcol"><span class="tag t-imp">IMP-8</span><span class="tag t-done">✓ готово</span></span>
+        <div class="body">
+          <h3>Сессия админа: 5-минутный кэш и продление при сетевой ошибке</h3>
+          <div class="refs"><code>src/lib/auth.ts</code></div>
+          <p>
+            Результат верификации кэшировался на 5 минут, а при сетевой ошибке функция возвращала
+            <code class="inline">true</code> ещё вдвое дольше — деактивированный админ сохранял
+            открытый интерфейс до десяти минут.
+          </p>
+          <div class="fix">
+            <b>Исправлено</b>
+            TTL снижен до 60&nbsp;с, продление при сетевой ошибке убрано: неудача связи — не
+            доказательство того, что сессия жива.
+            <span class="left">
+              Токен по-прежнему в localStorage и доступен любому XSS. Перевод на httpOnly-cookie
+              — отдельная задача, затрагивающая все админские вызовы.
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <div class="find done">
+        <span class="tagcol"><span class="tag t-imp">IMP-9</span><span class="tag t-done">✓ готово</span></span>
+        <div class="body">
+          <h3>Матрица прав живёт в трёх файлах одновременно</h3>
+          <div class="refs"><code>tests/edge/role-matrix.test.mjs</code></div>
+          <p>
+            <code class="inline">ROLE_PERMISSIONS</code> продублирован во фронтенде и в
+            edge-функции, оба файла просят «держать в синхроне». Расхождение — это либо кнопка,
+            которая не работает, либо, что хуже, действие, разрешённое сервером и не показанное
+            в UI.
+          </p>
+          <div class="fix">
+            <b>Исправлено</b>
+            Общий модуль тут невозможен — один файл собирает Vite для браузера, другой Supabase CLI
+            для Deno, и деплоится он из своего каталога. Поэтому добавлен тест, который вытаскивает
+            матрицу из обоих файлов парсером TypeScript и сравнивает, называя направление
+            расхождения («сервер разрешает лишнее» / «UI показывает лишнее»).
+            <span class="left">
+              Проверен от обратного: подмена одного права в <code class="inline">auth.ts</code>
+              валит тест с точным указанием роли и режима.
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <div class="find done">
+        <span class="tagcol"><span class="tag t-imp">IMP-10</span><span class="tag t-done">✓ готово</span></span>
+        <div class="body">
+          <h3><code class="inline">isValidRole</code> импортирован и тут же переопределён</h3>
+          <div class="refs"><code>supabase/functions/admin-api/index.ts</code></div>
+          <p>
+            Импорт из <code class="inline">_shared/admin-auth.ts</code> и локальное объявление того
+            же имени в одном модуле, плюс дубликат типа <code class="inline">AdminIdentity</code>.
+            Рантайм не падал (esbuild выбрасывал конфликтующий импорт), но
+            <code class="inline">deno check</code> упал бы, а в коде лежали две копии одной
+            проверки.
+          </p>
+          <div class="fix">
+            <b>Исправлено</b>
+            Локальные объявления удалены, используются импортированные. Проверено скриптом на
+            AST — дублей верхнего уровня в файле не осталось.
+          </div>
+        </div>
+      </div>
+
+      <div class="find done">
+        <span class="tagcol"><span class="tag t-imp">IMP-13</span><span class="tag t-done">✓ готово</span></span>
+        <div class="body">
+          <h3><code class="inline">formatPrice</code> игнорировал язык в 51 вызове из 52</h3>
+          <div class="refs"><code>src/lib/utils.ts</code></div>
+          <p>
+            Второй аргумент был необязательным и без него подставлялся «сум». Узбекоязычный
+            пользователь видел «сум» на всех ценах — в каталоге, корзине, оформлении и заказах —
+            при полностью узбекском интерфейсе.
+          </p>
+          <div class="fix">
+            <b>Исправлено</b>
+            Дефолт берётся из языка, в котором приложение реально работает. Читать стор здесь, а не
+            протаскивать параметр через 52 вызова, — сознательный выбор: любой пропущенный вызов
+            молча сохранил бы старый баг. Компоненты, которые рисуют цены, и так подписаны на
+            <code class="inline">language</code> через <code class="inline">useTranslation</code>.
+            Цикла импорта нет — проверено.
+          </div>
+        </div>
+      </div>
+
+      <div class="find done">
+        <span class="tagcol"><span class="tag t-imp">IMP-14</span><span class="tag t-done">✓ готово</span></span>
+        <div class="body">
+          <h3>Плейсхолдеры контактов и 404 на фавиконе</h3>
+          <div class="refs"><code>src/lib/config.ts</code><code>src/pages/ContactUs.tsx</code><code>index.html</code></div>
+          <p>
+            Дефолты контактов были унаследованы от прошлого проекта: <code class="inline">+998 90 123 45 67</code>
+            — последовательная пустышка, <code class="inline">info@example.uz</code> — несуществующий
+            ящик. Деплой, забывший переменные, публиковал правдоподобный чужой номер.
+            Плюс <code class="inline">index.html</code> ссылался на <code class="inline">/vite.svg</code>
+            при пустом <code class="inline">public/</code>.
+          </p>
+          <div class="fix">
+            <b>Исправлено</b>
+            Фальшивые дефолты убраны: ненастроенные строки просто не рендерятся на
+            <code class="inline">/contact</code>. Магазин выглядит недооформленным вместо того,
+            чтобы отправлять людей не туда. В dev-режиме в консоль пишется, каких переменных не
+            хватает. Telegram оставлен с фолбэком — юзернейм бота принадлежит этому магазину по
+            определению, так что страница никогда не остаётся вовсе без контакта. Добавлен
+            <code class="inline">public/favicon.svg</code> со знаком из нижней навигации.
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ═══════════ ВАЖНО — ОСТАЛОСЬ ═══════════ -->
+  <section>
+    <div class="sec-head">
+      <h2>Важно — осталось</h2>
+      <span class="count">2 · оба частично</span>
+      <span class="verdict">Требуют отдельного захода</span>
+    </div>
+
+    <div class="finds">
+
+      <div class="find done">
+        <span class="tagcol"><span class="tag t-crit">НОВОЕ</span><span class="tag t-done">✓ готово</span></span>
+        <div class="body">
+          <h3>Кнопка «открыть магазин» в боте вела бы на мёртвый хост</h3>
+          <div class="refs"><code>bot/config.py</code><code>render.yaml</code></div>
+          <p>
+            Всплыло при удалении фронтенд-сервиса. <code class="inline">WEBAPP_URL</code> был задан
+            в <code class="inline">render.yaml</code> как
+            <code class="inline">https://kupi-frontend.onrender.com</code> — ровно тот сервис,
+            который удалялся, — а в <code class="inline">bot/config.py</code> имел ещё и молчаливый
+            фолбэк на <code class="inline">https://kupi.onrender.com</code>.
+          </p>
+          <div class="fix">
+            <b>Исправлено</b>
+            В <code class="inline">bot/config.py</code> переменная стала обязательной
+            (<code class="inline">os.environ["WEBAPP_URL"]</code>), как и все остальные в этом файле;
+            в <code class="inline">render.yaml</code> — <code class="inline">sync: false</code>.
+            Конкретный домен не подставлял: в репозитории несколько кандидатов на Vercel-адрес,
+            и неверный увёл бы каждую кнопку «открыть магазин» не туда.
+            <span class="left">
+              Проверено: без <code class="inline">WEBAPP_URL</code> конфиг падает с
+              <code class="inline">KeyError</code> при старте, а не поднимается с мёртвой ссылкой.
+              Дефолт здесь хуже краха — магазин выглядел бы сломанным вместо деплоя.
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <div class="find">
+        <span class="tagcol"><span class="tag t-imp">IMP-3</span><span class="tag t-done">◐ частично</span></span>
+        <div class="body">
+          <h3>Rate limit во всех edge-функциях — <code class="inline">Map</code> в памяти изолята</h3>
+          <div class="refs"><code>supabase/functions/client-api/index.ts</code><code>supabase/functions/admin-login/index.ts</code></div>
+          <div class="fix">
+            <b>Что сделано</b>
+            Лимит client-api поднят с 30 до 60/мин (после IMP-1 и IMP-2 легальный потолок сильно
+            ниже, а 30 выбивались обычным использованием); на 429 добавлен заголовок
+            <code class="inline">Retry-After</code>; из <code class="inline">x-forwarded-for</code>
+            берётся первый хоп, иначе клиент мог менять заголовок и получать свежий бюджет каждым
+            запросом. В admin-login добавлено второе ведро — по IP: раньше лимит был только по
+            email, поэтому распыление одного пароля по многим аккаунтам не ограничивалось ничем.
+          </div>
+          <div class="why">
+            <b>Почему не закрыто</b>
+            Счётчик по-прежнему живёт в памяти одного изолята: сбрасывается на холодном старте и не
+            разделяется между параллельными. Это поднимает стоимость перебора, но не делает его
+            невозможным. Настоящий лимитер требует общего состояния — счётчик в Postgres или
+            Redis/Upstash. Это выбор архитектуры и стоимости, а вслепую (без доступа к базе из этой
+            среды) катить миграцию, через которую пойдёт весь трафик client-api, я не стал.
+          </div>
+        </div>
+      </div>
+
+      <div class="find">
+        <span class="tagcol"><span class="tag t-imp">IMP-12</span><span class="tag t-done">◐ частично</span></span>
+        <div class="body">
+          <h3>Мок-данные едут в продакшн-бандл</h3>
+          <div class="refs"><code>src/lib/supabase.ts</code><code>src/lib/supabase/mock.ts</code></div>
+          <div class="fix">
+            <b>Что сделано</b>
+            Введён <code class="inline">USE_MOCK_DATA = import.meta.env.DEV &amp;&amp; !isSupabaseConfigured</code>,
+            и все 74 мок-ветки переключены на него. В продакшн-сборке
+            <code class="inline">import.meta.env.DEV</code> подставляется литералом
+            <code class="inline">false</code>, ветки становятся мёртвым кодом и вырезаются —
+            проверено, кода мок-фильтрации в бандле больше нет. Заодно устранена важная половина
+            проблемы: продакшн с потерянными переменными теперь падает громко (и это рисует
+            QueryError), а не подсовывает покупателю фальшивый магазин.
+          </div>
+          <div class="why">
+            <b>Почему не закрыто</b>
+            Сами массивы-фикстуры из бандла пока не ушли. Одну причину нашёл и убрал —
+            <code class="inline">const now = new Date().toISOString()</code> на верхнем уровне
+            модуля: вызов в момент импорта Rollup не может признать чистым и держит весь модуль.
+            После замены на литерал что-то ещё продолжает удерживать экспорты; на этом я остановился,
+            чтобы не жечь время. Речь о нескольких килобайтах в 403-килобайтном бандле —
+            стоит отдельного короткого захода, а не продолжения этого.
+          </div>
+        </div>
+      </div>
+
+      <div class="find done">
+        <span class="tagcol"><span class="tag t-imp">IMP-11</span><span class="tag t-done">◐ почти</span></span>
+        <div class="body">
+          <h3>Три способа отдавать одну и ту же сборку, и они расходятся</h3>
+          <div class="refs"><code>api/product-preview.ts</code><code>vercel.json</code><code>DEPLOYMENT.md</code></div>
+          <p>
+            Только <code class="inline">server.cjs</code> рендерил OG-разметку для краулеров, а
+            <code class="inline">bot/.env</code> указывает на Vercel — то есть каждая реальная
+            ссылка на товар приходила в Telegram без картинки, названия и цены.
+          </p>
+          <div class="fix">
+            <b>Решение принято: остаёмся на Vercel</b>
+            Генерация превью перенесена в <code class="inline">api/product-preview.ts</code> —
+            Vercel Edge Function на том же origin. Краулеры попадают туда правилом в
+            <code class="inline">vercel.json</code> с проверкой <code class="inline">User-Agent</code>,
+            обычные посетители по-прежнему получают SPA.
+            <span class="left">
+              Вариант с Supabase Edge Function отклонён осознанно:
+              <code class="inline">vercel.json</code> не умеет подставлять переменные окружения
+              в <code class="inline">rewrites</code>, так что URL проекта пришлось бы захардкодить,
+              а запросы краулеров ходили бы лишним кросс-хостовым хопом.
+            </span>
+          </div>
+          <div class="why">
+            <b>Заодно починено то, чего не было в исходном списке</b>
+            Старый рендерер искал товар по slug <em>без</em> фильтра
+            <code class="inline">is_active</code> — снятый с продажи товар продолжал отдавать
+            богатое превью со старой ценой. Теперь фильтр есть. При неизвестном slug вместо сырого
+            slug в роли названия показывается карточка магазина.
+            <code class="inline">og:image</code> ограничен абсолютными https-URL: значение приходит
+            из базы, а забирают его третьи стороны.
+            <span class="left">
+              <b>Консолидация завершена:</b> <code class="inline">server.cjs</code>,
+              <code class="inline">nginx.conf</code> и <code class="inline">Dockerfile.frontend</code>
+              удалены, из <code class="inline">render.yaml</code> убран веб-сервис — там остался
+              только воркер бота. Возврат любого файла:
+              <code class="inline">git show HEAD:server.cjs &gt; server.cjs</code>.
+            </span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ═══════════ АДАПТИВНОСТЬ ═══════════ -->
+  <section>
+    <div class="sec-head">
+      <h2>Адаптивность</h2>
+      <span class="count">4 из 6</span>
+      <span class="verdict">Telegram Mini App, экраны 320–430&nbsp;px</span>
+    </div>
+
+    <p class="sec-note">
+      Каталог прогнан в браузере на 320×568: горизонтального переполнения нет
+      (<code class="inline">document.scrollWidth === 320</code>), ни один элемент не выходит за
+      вьюпорт, базовая сетка держится. Проблемы — в вертикальных запасах и в паре мест, где
+      вёрстка полагается на неверные допущения об устройстве. Закрыты MOB-1, 2, 3 и 6; MOB-4 и MOB-5
+      описаны ниже.
+    </p>
+
+    <div class="finds">
+
+      <div class="find done">
+        <span class="tagcol"><span class="tag t-mob">MOB-1</span><span class="tag t-done">✓ готово</span></span>
+        <div class="body">
+          <h3>Отступ под фиксированной панелью задан магическими числами</h3>
+          <div class="refs"><code>src/hooks/useFixedBarSpacing.ts</code><code>ProductDetail.tsx</code><code>Cart.tsx</code></div>
+          <p>
+            <code class="inline">pb-28</code> и <code class="inline">pb-36</code> — догадка о высоте,
+            которую никто не измерял. Она зависит от паддингов, размера кнопки на текущем брейкпоинте,
+            масштаба шрифта у пользователя и <code class="inline">env(safe-area-inset-bottom)</code>.
+          </p>
+          <div class="fix">
+            <b>Исправлено — и число оказалось неверным</b>
+            Хук <code class="inline">useFixedBarSpacing</code> измеряет панель через
+            <code class="inline">ResizeObserver</code> и публикует высоту в CSS-переменную, а контент
+            резервирует ровно её. Значение следует за поворотом экрана, масштабом шрифта и
+            изменением содержимого панели.
+            <span class="left">
+              Замер в браузере на 375&nbsp;px: панель корзины — <b>156&nbsp;px</b>, а
+              <code class="inline">pb-36</code> давал 144. То есть контент подрезался на 12&nbsp;px
+              уже сейчас, а не «когда-нибудь потом». После правки padding совпадает с высотой
+              панели точно, последняя строка её не задевает.
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <div class="find done">
+        <span class="tagcol"><span class="tag t-mob">MOB-2</span><span class="tag t-done">✓ готово</span></span>
+        <div class="body">
+          <h3>Детект клавиатуры по эвристике 75%</h3>
+          <div class="refs"><code>src/components/Layout.tsx</code><code>src/index.css</code></div>
+          <p>
+            <code class="inline">vp.height &lt; innerHeight * 0.75</code> задаёт неверный вопрос:
+            25% — не свойство клавиатуры. В ландшафте она занимает заметно больше и правило
+            срабатывало вхолостую, а на компактной или плавающей клавиатуре — и на Android, где
+            вьюпорт не сжимается вовсе, — не срабатывало никогда.
+          </p>
+          <div class="fix">
+            <b>Исправлено</b>
+            Основной признак теперь — фокус в редактируемом элементе, то есть ровно то, что
+            означает «пользователь печатает»; чекбоксы, радио и кнопки исключены. Сжатие вьюпорта
+            осталось вторичным триггером с консервативным порогом в 50%. Условие ограничено
+            <code class="inline">pointer: coarse</code> — на мыши клавиатуры нет, и прежний guard
+            <code class="inline">isTelegramWebApp()</code> это случайно обеспечивал.
+            <span class="left">
+              Проверено в браузере: на 375&nbsp;px фокус в поиске прячет навигацию, blur возвращает,
+              фокус на кнопке не трогает; на десктопе с мышью не срабатывает вовсе. Старая эвристика
+              в этой эмуляции не срабатывала никогда — навигация оставалась поверх клавиатуры.
+            </span>
+          </div>
+          <div class="why">
+            <b>Что осталось как было — сознательно</b>
+            Класс <code class="inline">bottom-nav-bar</code> на панели «В корзину» в ProductDetail
+            переименован в <code class="inline">hide-when-keyboard</code>: он называет действие, а не
+            элемент, так что скрытие стало решением, а не совпадением имён. Само поведение я не менял
+            — прятать CTA, пока пишут отзыв, правильно: клавиатура всё равно закрывает низ экрана.
+          </div>
+        </div>
+      </div>
+
+      <div class="find done">
+        <span class="tagcol"><span class="tag t-mob">MOB-3</span><span class="tag t-done">✓ готово</span></span>
+        <div class="body">
+          <h3>Нечитаемые статусы и disabled-CTA — это в первую очередь телефон</h3>
+          <p>
+            Бейдж статуса в списке заказов и фиксированная кнопка внизу карточки товара. Закрыто
+            вместе с CRIT-3 и IMP-4.
+          </p>
+        </div>
+      </div>
+
+      <div class="find">
+        <span class="tag t-mob">MOB-4</span>
+        <div class="body">
+          <h3><code class="inline">padding-top: env(safe-area-inset-top)</code> внутри Telegram</h3>
+          <div class="refs"><code>src/index.css</code></div>
+          <p>
+            Для ≤768&nbsp;px на <code class="inline">body</code> добавляется верхний отступ по
+            безопасной зоне. Для обычного браузера это верно. Telegram на iOS рисует Mini App уже
+            ниже выреза и сам управляет верхней зоной — если inset при этом ненулевой, над шапкой
+            появится лишняя полоса. Статически не подтвердить: нужен реальный iPhone с чёлкой.
+          </p>
+        </div>
+      </div>
+
+      <div class="find">
+        <span class="tag t-mob">MOB-5</span>
+        <div class="body">
+          <h3>Админские таблицы на 320&nbsp;px — постоянный горизонтальный скролл</h3>
+          <div class="refs"><code>AdminUsers.tsx</code><code>AdminProducts.tsx</code></div>
+          <p>
+            <code class="inline">min-w-[640px]</code> внутри <code class="inline">overflow-x-auto</code>.
+            Страницу не ломает, но таблица вдвое шире вьюпорта. Админка открывается с телефона —
+            она в том же бандле и под тем же роутером. Либо карточная раскладка до
+            <code class="inline">sm</code>, либо явно признать админку десктопной.
+          </p>
+        </div>
+      </div>
+
+      <div class="find done">
+        <span class="tagcol"><span class="tag t-mob">MOB-6</span><span class="tag t-done">✓ готово</span></span>
+        <div class="body">
+          <h3>Порог «мобильности» считался по <code class="inline">innerWidth</code>, а не media query</h3>
+          <div class="refs"><code>src/components/WishlistToggle.tsx</code></div>
+          <p>
+            Опрос <code class="inline">window.innerWidth</code> на каждом
+            <code class="inline">resize</code> — а тот сыплется непрерывно при повороте — и число 640,
+            дублирующее брейкпоинт из конфига Tailwind.
+          </p>
+          <div class="fix">
+            <b>Исправлено</b>
+            <code class="inline">matchMedia('(min-width: 640px)')</code>: срабатывает один раз, когда
+            ответ действительно меняется. Поповер при смене режима закрывается — раньше он оставался
+            открытым, и поворот через границу подменял BottomSheet дропдауном, спозиционированным по
+            координатам старой раскладки.
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ═══════════ ЖЕЛАТЕЛЬНО ═══════════ -->
+  <section>
+    <div class="sec-head">
+      <h2>Желательно</h2>
+      <span class="count">10 из 12</span>
+      <span class="verdict">Мёртвый код, дубли, гигиена репозитория</span>
+    </div>
+
+    <div class="finds">
+
+      <div class="find done">
+        <span class="tagcol"><span class="tag t-nice">NICE-1</span><span class="tag t-done">✓ готово</span></span>
+        <div class="body">
+          <h3><code class="inline">BrowserGuard</code> — обёртка-пустышка на 13 маршрутах</h3>
+          <p>Весь компонент — <code class="inline">return &lt;&gt;{children}&lt;/&gt;</code>. Либо вернуть смысл, либо убрать.</p>
+        <div class="fix"><b>Исправлено</b>Компонент удалён, 13 маршрутов в <code class="inline">App.tsx</code> развёрнуты.</div>
+        </div>
+      </div>
+
+      <div class="find done">
+        <span class="tagcol"><span class="tag t-nice">NICE-2</span><span class="tag t-done">✓ готово</span></span>
+        <div class="body">
+          <h3>Мусор в git</h3>
+          <p>
+            6 скриншотов <code class="inline">test-*.png</code>, 3 отладочных
+            <code class="inline">.mts</code>, <code class="inline">проект.md</code> на 39&nbsp;КБ и
+            5 картинок в <code class="inline">public/</code>, удалённых из рабочего дерева, но всё
+            ещё отслеживаемых.
+          </p>
+        <div class="fix"><b>Исправлено</b>Оказалось, что 10 файлов (<code class="inline">test-*.png</code>, <code class="inline">test-*.mts</code>) и 5 картинок в <code class="inline">public/</code> уже удалены из рабочего дерева и исчезнут из репозитория при первом же коммите — делать было нечего. <code class="inline">проект.md</code> не тронул: 39&nbsp;КБ документации сносить без спроса не стал, но добавил в начало предупреждение — он описывает уже снесённую схему деплоя.</div>
+        </div>
+      </div>
+
+      <div class="find done">
+        <span class="tagcol"><span class="tag t-nice">NICE-3</span><span class="tag t-done">✓ готово</span></span>
+        <div class="body">
+          <h3><code class="inline">useUnreadMessageCount</code> не используется нигде</h3>
+          <p>
+            Экспортируемый хук без единого вызова. Интервал ему я всё равно поправил (IMP-2), чтобы
+            он не стал ловушкой, если кто-то его подключит.
+          </p>
+        <div class="fix"><b>Исправлено</b>Хук удалён; экшен <code class="inline">get_unread_message_count</code> в client-api оставлен для того, кто будет делать бейдж непрочитанных.</div>
+        </div>
+      </div>
+
+      <div class="find done">
+        <span class="tagcol"><span class="tag t-nice">NICE-4</span><span class="tag t-done">✓ готово</span></span>
+        <div class="body">
+          <h3>Чекер мёртвых CSS-классов видит только атрибуты <code class="inline">className</code></h3>
+          <div class="refs"><code>tests/find-dead-classes.mjs</code></div>
+          <p>
+            Классы, лежащие строками в таблицах данных, ему невидимы — ровно поэтому CRIT-3 прожил
+            до сих пор при зелёном <code class="inline">npm run check:css</code>. Стоит добавить
+            проход по строковым литералам, похожим на утилиты Tailwind.
+          </p>
+        <div class="fix"><b>Исправлено</b>Чекер теперь сканирует и строковые литералы, похожие на наборы утилит, — и многословные, и односложные с «тейлвиндовым» префиксом. Комментарии вырезаются перед сканированием, иначе он ругался на имена классов, упомянутые в пояснениях. Проверен от обратного дважды: подсаженный <code class="inline">bg-brand-600</code> в многословной строке и <code class="inline">bg-surface-500</code> в односложном поле <code class="inline">dot</code> — оба ловятся с ненулевым кодом возврата и указанием файла.</div>
+        </div>
+      </div>
+
+      <div class="find done">
+        <span class="tagcol"><span class="tag t-nice">NICE-5</span><span class="tag t-done">✓ готово</span></span>
+        <div class="body">
+          <h3><code class="inline">admin-login</code> хэширует токен вручную рядом с импортом <code class="inline">hashToken</code></h3>
+          <p>
+            Блок <code class="inline">verify_session</code> дублирует
+            <code class="inline">verifyAdminSession</code> из <code class="inline">_shared</code>,
+            но без проверки роли, и повторяет SHA-256 руками при уже импортированном хелпере.
+          </p>
+        <div class="fix"><b>Исправлено</b>Режим <code class="inline">verify_session</code> переведён на общий <code class="inline">verifyAdminSession</code> — ту же функцию, которой admin-api и client-api проверяют каждый запрос. Ручной SHA-256 и собственная копия запроса к аккаунту убраны; попутно исчезло расхождение — своя копия не смотрела на роль.</div>
+        </div>
+      </div>
+
+      <div class="find">
+        <span class="tag t-nice">NICE-6</span>
+        <div class="body">
+          <h3>Чипы фильтров собираются из уже загруженных товаров</h3>
+          <p>
+            <code class="inline">allSizes</code>/<code class="inline">allColors</code> выводятся из
+            текущих страниц, поэтому набор доступных размеров и цветов меняется под пальцем при
+            подгрузке. Уедет вместе с остатком CRIT-2.
+          </p>
+        </div>
+      </div>
+
+      <div class="find done">
+        <span class="tagcol"><span class="tag t-nice">NICE-7</span><span class="tag t-done">✓ разобрано</span></span>
+        <div class="body">
+          <h3><code class="inline">escapeHtml</code> продублирован</h3>
+          <p>
+            Две реализации с разным набором символов: в <code class="inline">server.cjs</code>
+            экранируется ещё и <code class="inline">"</code>, в client-api — нет. Среды выполнения
+            разные, общий модуль невозможен, но расхождение стоит задокументировать.
+          </p>
+        <div class="fix"><b>Исправлено</b>Расхождение оказалось не багом. Копия в client-api экранирует только <code class="inline">&amp; &lt; &gt;</code>, потому что пишет в HTML-режим Telegram, где нет атрибутов; копия в превью покрывает ещё и кавычки, потому что пишет в атрибуты. Экранировать кавычки в сообщениях Telegram означало бы показать персоналу магазина буквальный <code class="inline">&amp;quot;</code>. Обе прокомментированы, чтобы следующий человек не «починил» их в одну.</div>
+        </div>
+      </div>
+
+      <div class="find done">
+        <span class="tagcol"><span class="tag t-nice">NICE-8</span><span class="tag t-done">✓ готово</span></span>
+        <div class="body">
+          <h3><code class="inline">generateSlug</code> пропускает обратный слэш</h3>
+          <p>
+            Класс <code class="inline">[^a-z0-9\\-]</code> означает «кроме букв, цифр, обратного
+            слэша и дефиса» — лишний <code class="inline">\</code> оставляет бэкслэш в слаге.
+          </p>
+        <div class="fix"><b>Исправлено</b>Класс <code class="inline">[^a-z0-9\\-]</code> означал «кроме букв, цифр, обратного слэша и дефиса» — исправлен на <code class="inline">[^a-z0-9-]</code>.</div>
+        </div>
+      </div>
+
+      <div class="find done">
+        <span class="tagcol"><span class="tag t-nice">NICE-9</span><span class="tag t-done">✓ частично</span></span>
+        <div class="body">
+          <h3>Точечные места мимо токенов темы</h3>
+          <p>
+            <code class="inline">bg-red-100</code>, <code class="inline">text-red-500</code>,
+            <code class="inline">bg-green-500</code>, <code class="inline">bg-red-600</code> —
+            дефолтная палитра Tailwind вместо <code class="inline">--danger</code>/<code class="inline">--success</code>.
+            В тёмной теме экран ошибки получает розовый кружок.
+          </p>
+        <div class="fix"><b>Исправлено</b>Починены места <b>без</b> <code class="inline">dark:</code>-вариантов, то есть реально сломанные в тёмной теме: <code class="inline">ErrorBoundary</code> (розовый круг), кнопка «Очистить прочитанные», галочка «добавлено» на карточке. Остальные ~15 мест имеют парные <code class="inline">dark:</code>-классы и в обеих темах работают — это косметика, и массовая замена дала бы большой диф с риском визуальных регрессий, которые здесь нечем проверить.</div>
+        </div>
+      </div>
+
+      <div class="find done">
+        <span class="tagcol"><span class="tag t-nice">NICE-10</span><span class="tag t-done">✓ готово</span></span>
+        <div class="body">
+          <h3><code class="inline">loadtest/config.js</code> хардкодит прод-проект</h3>
+          <p>
+            URL и anon-ключ зашиты в отслеживаемый файл, сценарий гонит 1000 пользователей. Ключ
+            публичный по назначению, утечки нет — но конфиг дублирует <code class="inline">.env</code>
+            и направляет нагрузочный тест в боевое окружение по умолчанию.
+          </p>
+        <div class="fix"><b>Исправлено</b><code class="inline">SUPABASE_URL</code> и <code class="inline">SUPABASE_ANON_KEY</code> берутся из окружения без дефолтов, с внятной подсказкой при запуске. Ключ был публичным по назначению — проблема была в дефолте: скрипт разгоняется до 1000 пользователей, и зашитый прод делал очевидным запуск по живому магазину.</div>
+        </div>
+      </div>
+
+      <div class="find done">
+        <span class="tagcol"><span class="tag t-nice">NICE-11</span><span class="tag t-done">✓ готово</span></span>
+        <div class="body">
+          <h3><code class="inline">package.json</code> всё ещё от шаблона</h3>
+          <p>
+            <code class="inline">"name": "vite-react-typescript-starter"</code>,
+            <code class="inline">"version": "0.0.0"</code>.
+          </p>
+        <div class="fix"><b>Исправлено</b><code class="inline">one-telegram-shop</code>, версия <code class="inline">1.0.0</code>.</div>
+        </div>
+      </div>
+
+      <div class="find">
+        <span class="tag t-nice">NICE-12</span>
+        <div class="body">
+          <h3>Ветки моков удваивают каждую функцию слоя данных</h3>
+          <p>
+            74 повторения <code class="inline">if (USE_MOCK_DATA)</code>, каждое со своим ручным
+            ответом-заглушкой. Если моки нужны для разработки, им место за отдельным адаптером,
+            а не в каждом методе запроса.
+          </p>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ═══════════ ПРОВЕРКА ═══════════ -->
+  <div class="panel">
+    <h2>Что проверено запуском после правок</h2>
+    <ul class="checks">
+      <li><span class="m">✓</span><span><b>npm run typecheck</b> — чисто; <code class="inline">api/</code> теперь тоже под tsc (был вне зоны проверки)</span></li>
+      <li><span class="m">✓</span><span><b>eslint .</b> — чисто</span></li>
+      <li><span class="m">✓</span><span><b>npm test</b> — 152 теста пройдено, 0 упало (было 117; +15 role-matrix, +20 product-preview)</span></li>
+      <li><span class="m">✓</span><span><b>npm run build</b> — сборка проходит</span></li>
+      <li><span class="m">✓</span><span><b>Чекер мёртвых классов</b> — все используемые классы порождают CSS</span></li>
+      <li><span class="m">✓</span><span><b>Все 17 edge-функций</b> парсятся; дублей верхнего уровня в admin-api не осталось</span></li>
+      <li><span class="m">✓</span><span><b>Контраст бейджей</b> — замерен в браузере на реальном CSS: 4.68–15.65:1 в обеих темах, провалов нет</span></li>
+      <li><span class="m">✓</span><span><b>Тёмные статусные тинты</b> — 3.8–5.9:1 против прежних 1.0:1</span></li>
+      <li><span class="m">✓</span><span><b>Офлайн-состояние</b> — каталог показывает «Нет подключения», а не «Нет товаров»</span></li>
+      <li><span class="m">✓</span><span><b>Детектор расхождения матрицы прав</b> — проверен от обратного, ловит подмену одного права</span></li>
+      <li><span class="m">✓</span><span><b>Конфиг бота</b> — падает с KeyError без <code class="inline">WEBAPP_URL</code>; в render.yaml остался только воркер, хардкода мёртвых хостов нет</span></li>
+      <li><span class="m">✓</span><span><b>Отступ под панелью</b> — замерен в браузере: 156&nbsp;px против 144&nbsp;px старого <code class="inline">pb-36</code>, теперь совпадает точно</span></li>
+      <li><span class="m">✓</span><span><b>Детект клавиатуры</b> — фокус/blur/кнопка на 375&nbsp;px и отсутствие срабатывания на десктопе</span></li>
+      <li><span class="m">✓</span><span><b>OG-превью</b> — рендерер прогнан вживую: валидный slug → 200 HTML, обход путей и пустой slug → 404, карточка отрисована в браузере, deep link открывает бота этого магазина с кнопкой Open App</span></li>
+      <li><span class="m">✓</span><span><b>bot/main.py</b> парсится</span></li>
+      <li><span class="m warn">!</span><span><b>Токен бота</b> — всё ещё открыт в <code class="inline">bot/bot.log</code> на диске и не отозван (CRIT-4)</span></li>
+    </ul>
+    <p class="caveat">
+      Чего проверить не удалось: Supabase из этой среды недоступен, поэтому всё, что уходит в базу,
+      проверено типами, тестами и разбором генерируемого запроса, но не запросом к живой базе.
+      Один раз на стенде стоит прогнать <code class="inline">.overlaps()</code> на
+      <code class="inline">sizes</code>, новый экранированный <code class="inline">or=(…)</code>
+      в поиске и <code class="inline">sanitizeColumns</code> в admin-api. Отдельно после первого
+      деплоя проверьте правило краулеров в <code class="inline">vercel.json</code>: маршрутизацию
+      по <code class="inline">User-Agent</code> из этой среды воспроизвести нельзя — прогоните
+      ссылку на товар через Telegram или debugger Facebook.
+      Миграции (86 файлов SQL) и RLS-политики не анализировались — это отдельный проход, и в нём
+      стоит проверить, что политики соответствуют матрице ролей из IMP-9.
+    </p>
+  </div>
+
+</div>

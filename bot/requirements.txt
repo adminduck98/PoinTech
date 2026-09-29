@@ -1,0 +1,12 @@
+# python-telegram-bot 21.3 crashed at startup on Python 3.14 (Render's current
+# default): Application.__init__ assigns to a __slots__-only attribute and
+# raises AttributeError before the bot ever connects. 22.8 declares 3.14
+# support, so the bot now starts on either interpreter — the .python-version
+# pin to 3.12.8 stays as the tested target, this is the belt to its braces.
+#
+# The 21 -> 22 breaking changes are all in Bot API wrapper objects
+# (BusinessConnection, ChatFullInfo, UniqueGift), none of which this bot
+# touches; the Application/handlers/filters API used here is unchanged.
+python-telegram-bot==22.8
+supabase==2.9.1
+python-dotenv==1.0.1

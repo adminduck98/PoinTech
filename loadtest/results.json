@@ -1,0 +1,254 @@
+{
+  "startTime": "2026-07-08T16:50:36.102Z",
+  "phases": [
+    {
+      "name": "warmup",
+      "targetUsers": 50,
+      "durationSec": 30,
+      "requests": 441,
+      "errors": 12,
+      "rps": 15,
+      "errorRate": "2.72"
+    },
+    {
+      "name": "ramp-up",
+      "targetUsers": 200,
+      "durationSec": 31,
+      "requests": 1831,
+      "errors": 50,
+      "rps": 59,
+      "errorRate": "2.73"
+    },
+    {
+      "name": "steady-200",
+      "targetUsers": 200,
+      "durationSec": 48,
+      "requests": 2018,
+      "errors": 57,
+      "rps": 42,
+      "errorRate": "2.82"
+    },
+    {
+      "name": "ramp-up-2",
+      "targetUsers": 500,
+      "durationSec": 33,
+      "requests": 4501,
+      "errors": 162,
+      "rps": 136,
+      "errorRate": "3.60"
+    },
+    {
+      "name": "steady-500",
+      "targetUsers": 500,
+      "durationSec": 48,
+      "requests": 4981,
+      "errors": 155,
+      "rps": 105,
+      "errorRate": "3.11"
+    },
+    {
+      "name": "ramp-up-3",
+      "targetUsers": 1000,
+      "durationSec": 36,
+      "requests": 9312,
+      "errors": 344,
+      "rps": 262,
+      "errorRate": "3.69"
+    },
+    {
+      "name": "peak",
+      "targetUsers": 1000,
+      "durationSec": 56,
+      "requests": 9743,
+      "errors": 282,
+      "rps": 175,
+      "errorRate": "2.89"
+    },
+    {
+      "name": "cooldown",
+      "targetUsers": 50,
+      "durationSec": 15,
+      "requests": 371,
+      "errors": 13,
+      "rps": 24,
+      "errorRate": "3.50"
+    }
+  ],
+  "endpoints": {
+    "GET /products (cart)": {
+      "requests": 2150,
+      "errors": 0,
+      "avgMs": 409,
+      "minMs": 322,
+      "maxMs": 1963,
+      "p50Ms": 376,
+      "p95Ms": 653,
+      "statusCodes": {
+        "200": 2150
+      },
+      "totalSizeKB": 4
+    },
+    "GET /reviews": {
+      "requests": 697,
+      "errors": 0,
+      "avgMs": 415,
+      "minMs": 323,
+      "maxMs": 2388,
+      "p50Ms": 377,
+      "p95Ms": 704,
+      "statusCodes": {
+        "200": 697
+      },
+      "totalSizeKB": 416
+    },
+    "GET /products": {
+      "requests": 6468,
+      "errors": 0,
+      "avgMs": 425,
+      "minMs": 323,
+      "maxMs": 3162,
+      "p50Ms": 381,
+      "p95Ms": 681,
+      "statusCodes": {
+        "200": 6468
+      },
+      "totalSizeKB": 43495
+    },
+    "GET /categories": {
+      "requests": 1107,
+      "errors": 0,
+      "avgMs": 411,
+      "minMs": 321,
+      "maxMs": 1859,
+      "p50Ms": 376,
+      "p95Ms": 675,
+      "statusCodes": {
+        "200": 1107
+      },
+      "totalSizeKB": 624
+    },
+    "GET /products (search)": {
+      "requests": 3275,
+      "errors": 0,
+      "avgMs": 416,
+      "minMs": 322,
+      "maxMs": 2362,
+      "p50Ms": 377,
+      "p95Ms": 674,
+      "statusCodes": {
+        "200": 3275
+      },
+      "totalSizeKB": 2179
+    },
+    "POST /checkout": {
+      "requests": 1075,
+      "errors": 1075,
+      "avgMs": 404,
+      "minMs": 320,
+      "maxMs": 1845,
+      "p50Ms": 376,
+      "p95Ms": 654,
+      "statusCodes": {
+        "404": 1075
+      },
+      "totalSizeKB": 0
+    },
+    "GET /products (slug)": {
+      "requests": 5288,
+      "errors": 0,
+      "avgMs": 413,
+      "minMs": 321,
+      "maxMs": 2098,
+      "p50Ms": 377,
+      "p95Ms": 676,
+      "statusCodes": {
+        "200": 5288
+      },
+      "totalSizeKB": 1844
+    },
+    "GET /collections": {
+      "requests": 1065,
+      "errors": 0,
+      "avgMs": 417,
+      "minMs": 323,
+      "maxMs": 2513,
+      "p50Ms": 377,
+      "p95Ms": 666,
+      "statusCodes": {
+        "200": 1065
+      },
+      "totalSizeKB": 2
+    },
+    "GET /banners": {
+      "requests": 1066,
+      "errors": 0,
+      "avgMs": 411,
+      "minMs": 322,
+      "maxMs": 1952,
+      "p50Ms": 378,
+      "p95Ms": 659,
+      "statusCodes": {
+        "200": 1066
+      },
+      "totalSizeKB": 1827
+    },
+    "GET /product/:slug": {
+      "requests": 5286,
+      "errors": 0,
+      "avgMs": 381,
+      "minMs": 320,
+      "maxMs": 2071,
+      "p50Ms": 374,
+      "p95Ms": 421,
+      "statusCodes": {
+        "200": 5286
+      },
+      "totalSizeKB": 3516
+    },
+    "RPC increment_views": {
+      "requests": 5286,
+      "errors": 0,
+      "avgMs": 373,
+      "minMs": 319,
+      "maxMs": 1680,
+      "p50Ms": 373,
+      "p95Ms": 397,
+      "statusCodes": {
+        "204": 5286
+      },
+      "totalSizeKB": 0
+    },
+    "GET /delivery_zones": {
+      "requests": 435,
+      "errors": 0,
+      "avgMs": 423,
+      "minMs": 326,
+      "maxMs": 1731,
+      "p50Ms": 382,
+      "p95Ms": 664,
+      "statusCodes": {
+        "200": 435
+      },
+      "totalSizeKB": 2771
+    }
+  },
+  "errors": [],
+  "slowQueries": [],
+  "summary": {
+    "totalRequests": 33198,
+    "totalErrors": 1075,
+    "totalSuccess": 32123,
+    "errorRate": "3.24",
+    "successRate": "96.76",
+    "avgResponseMs": 404,
+    "p50Ms": 376,
+    "p90Ms": 418,
+    "p95Ms": 635,
+    "p99Ms": 1414,
+    "maxMs": 3162,
+    "minMs": 319,
+    "peakConcurrent": 1000,
+    "rps": 112
+  },
+  "endTime": "2026-07-08T16:55:34.456Z"
+}

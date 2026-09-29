@@ -1,0 +1,39 @@
+# Render hosts the Telegram bot worker, and nothing else.
+#
+# There used to be a `kupi-frontend` web service here that ran `server.cjs`.
+# The project shipped three ways to serve the same build — that service,
+# `nginx.conf` + `Dockerfile.frontend`, and `vercel.json` — and they drifted:
+# only server.cjs rendered Open Graph previews for crawlers, while the bot
+# pointed at Vercel, so every real product link arrived in Telegram with no
+# image, title or price.
+#
+# Vercel is now the single frontend target and the preview renderer lives in
+# api/product-preview.ts. The web service and the two Docker files are gone;
+# `git show HEAD:server.cjs` brings any of them back if that decision is
+# reversed.
+
+services:
+  # ─── Telegram Bot (Background Worker) ────────────────────────────────────
+  - type: worker
+    name: kupi-bot
+    runtime: python
+    buildCommand: cd bot && pip install -r requirements.txt
+    startCommand: cd bot && python main.py
+    envVars:
+      - key: BOT_TOKEN
+        sync: false
+      - key: ADMIN_ID
+        sync: false
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      # This was hard-coded to https://kupi-frontend.onrender.com — the web
+      # service removed above. Left unset on purpose rather than guessing:
+      # the repository mentions several candidate Vercel domains
+      # (see DEFAULT_ORIGINS in supabase/functions/_shared/cors.ts) and putting
+      # the wrong one here points every "open shop" button in the bot at a host
+      # that is not the shop. Set it in the Render dashboard to the same origin
+      # the Mini App is registered under in @BotFather.
+      - key: WEBAPP_URL
+        sync: false

@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256" role="img" aria-label="Point Tech">
+  <title>Point Tech</title>
+  <g transform="translate(128.34 99.18) scale(1.1435)">
+    <path d="M -66.14 -13.46 A 67.50 67.50 0 1 1 -26.37 62.13 L -16.59 47.91 A 50.70 50.70 0 1 0 -48.86 -13.55 Z" fill="#111A24"/>
+    <circle cx="-50.40" cy="16.80" r="17.70" fill="#1668E0"/>
+    <rect x="-60.90" y="47.70" width="17.40" height="70.20" fill="#111A24"/>
+  </g>
+</svg>
